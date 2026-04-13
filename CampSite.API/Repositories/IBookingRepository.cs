@@ -5,6 +5,7 @@ namespace CampSite.API.Repositories
     public interface IBookingRepository
     {
         Task<Booking?>              GetByReferenceNumberAsync(string referenceNumber);
+        Task<Booking?>              GetByEmailAsync(string guestEmail);
         Task<Booking?>              GetByIdAsync(int id);
         Task<IEnumerable<Booking>>  GetAllAsync();
         Task<bool>                  HasOverlappingBookingAsync(

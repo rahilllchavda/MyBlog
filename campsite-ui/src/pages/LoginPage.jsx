@@ -1,17 +1,35 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../context/useApp";
 import { login } from "../services/api";
-import { Tent, Eye, EyeOff } from "lucide-react";
+import {
+  Tent,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  ArrowLeft,
+  Sparkles,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { loginUser } = useApp();
+  const { loginUser, user } = useApp();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // ✅ If already logged in as admin, redirect to admin panel
+  // If logged in as regular user, redirect to home
+  useEffect(() => {
+    if (user?.isAdmin) {
+      navigate("/admin", { replace: true });
+    } else if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   const validate = () => {
     const e = {};
@@ -29,8 +47,12 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await login(form);
+      if (!res.data?.success || !res.data?.token) {
+        toast.error(res.data?.message ?? "Login failed.");
+        return;
+      }
       loginUser(res.data, res.data.token);
-      toast.success(`Welcome back, ${res.data.firstName}!`);
+      toast.success(`Welcome back, Admin!`);
       navigate(res.data.isAdmin ? "/admin" : "/");
     } catch (err) {
       toast.error(err.response?.data?.message ?? "Login failed.");
@@ -39,9 +61,30 @@ export default function LoginPage() {
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleLogin();
+  };
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (errors[key]) {
+      setErrors((prev) => ({ ...prev, [key]: undefined }));
+    }
+  };
+
+  const fillDemoCredentials = () => {
+    setForm({ email: "admin@campsite.com", password: "Admin@123" });
+    setErrors({});
+  };
+
   return (
     <div className="login-page">
       <div className="login-card">
+        <Link to="/" className="login-back-link">
+          <ArrowLeft size={14} /> Back to camps
+        </Link>
+
         <div className="login-brand">
           <Tent size={40} strokeWidth={1.5} />
           <h1>CampSite</h1>
@@ -49,52 +92,84 @@ export default function LoginPage() {
         <h2 className="login-title">Admin Login</h2>
         <p className="login-sub">Sign in to manage camps and bookings</p>
 
-        <div className={`form-field ${errors.email ? "has-error" : ""}`}>
-          <label>Email Address</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            placeholder="admin@campsite.com"
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-          />
-          {errors.email && <span className="field-error">{errors.email}</span>}
-        </div>
-
-        <div className={`form-field ${errors.password ? "has-error" : ""}`}>
-          <label>Password</label>
-          <div className="password-wrap">
+        <form className="login-form" onSubmit={handleSubmit} noValidate>
+          <div className={`form-field ${errors.email ? "has-error" : ""}`}>
+            <label htmlFor="login-email">
+              <Mail size={13} /> Email Address
+            </label>
             <input
-              type={showPw ? "text" : "password"}
-              value={form.password}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, password: e.target.value }))
-              }
-              placeholder="••••••••"
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              id="login-email"
+              type="email"
+              value={form.email}
+              onChange={(e) => updateField("email", e.target.value)}
+              placeholder="admin@campsite.com"
+              autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "login-email-error" : undefined}
             />
-            <button
-              className="pw-toggle"
-              type="button"
-              onClick={() => setShowPw(!showPw)}
-            >
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
+            {errors.email && (
+              <span className="field-error" id="login-email-error">
+                {errors.email}
+              </span>
+            )}
           </div>
-          {errors.password && (
-            <span className="field-error">{errors.password}</span>
-          )}
-        </div>
+
+          <div className={`form-field ${errors.password ? "has-error" : ""}`}>
+            <label htmlFor="login-password">
+              <Lock size={13} /> Password
+            </label>
+            <div className="password-wrap">
+              <input
+                id="login-password"
+                type={showPw ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => updateField("password", e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={
+                  errors.password ? "login-password-error" : undefined
+                }
+              />
+              <button
+                className="pw-toggle"
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                aria-label={showPw ? "Hide password" : "Show password"}
+              >
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {errors.password && (
+              <span className="field-error" id="login-password-error">
+                {errors.password}
+              </span>
+            )}
+          </div>
+
+          <button
+            className="btn btn-primary btn-full"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
 
         <button
-          className="btn btn-primary btn-full"
-          onClick={handleLogin}
+          type="button"
+          className="btn btn-ghost btn-full login-demo-btn"
+          onClick={fillDemoCredentials}
           disabled={loading}
         >
-          {loading ? "Signing in..." : "Sign In"}
+          <Sparkles size={14} /> Use demo credentials
         </button>
 
-        <p className="login-hint">Demo: admin@campsite.com / Admin@123</p>
+        <p className="login-hint">
+          Demo account
+          <br />
+          admin@campsite.com / Admin@123
+        </p>
       </div>
     </div>
   );

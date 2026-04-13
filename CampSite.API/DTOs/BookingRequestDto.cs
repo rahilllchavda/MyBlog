@@ -15,4 +15,14 @@ namespace CampSite.API.DTOs
         public DateTime CheckOut { get; set; }
         public string? CouponCode { get; set; }
     }
+
+    public class BookingAccessDto
+    {
+        public string GuestEmail { get; set; } = string.Empty;
+    }
+
+    public class CancelBookingRequestDto
+    {
+        public string GuestEmail { get; set; } = string.Empty;
+    }
 }

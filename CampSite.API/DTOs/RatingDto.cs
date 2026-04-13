@@ -3,6 +3,7 @@ namespace CampSite.API.DTOs
     public class RatingRequestDto
     {
         public string ReferenceNumber { get; set; } = string.Empty;
+        public string GuestEmail { get; set; } = string.Empty;
         public int CampId { get; set; }
         public int Stars { get; set; }
         public string? Comment { get; set; }

@@ -34,7 +34,12 @@ namespace CampSite.API.Repositories
         {
             var query = _context.Camps
                 .Include(c => c.Ratings)
-                .Where(c => c.IsActive);
+                .Where(c => c.IsActive)
+                .Where(c => !_context.Bookings.Any(b =>
+                    b.CampId   == c.Id                  &&
+                    b.Status   == BookingStatus.Active  &&
+                    b.CheckIn  < checkOut               &&
+                    b.CheckOut > checkIn));
 
             if (capacity.HasValue)
                 query = query.Where(c => c.Capacity >= capacity.Value);

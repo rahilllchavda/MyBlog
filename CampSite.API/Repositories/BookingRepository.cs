@@ -15,11 +15,28 @@ namespace CampSite.API.Repositories
 
         public async Task<Booking?> GetByReferenceNumberAsync(string referenceNumber)
         {
+            var normalizedReference = referenceNumber.Trim().ToUpper();
+
             return await _context.Bookings
                 .Include(b => b.Camp)
                 .Include(b => b.Rating)
                 .FirstOrDefaultAsync(b =>
-                    b.ReferenceNumber == referenceNumber);
+                    b.ReferenceNumber.ToUpper() == normalizedReference);
+        }
+
+        // ✅ Get first active booking by email
+        public async Task<Booking?> GetByEmailAsync(string guestEmail)
+        {
+            var today = DateTime.Today;
+
+            return await _context.Bookings
+                .Include(b => b.Camp)
+                .Include(b => b.Rating)
+                .Where(b => b.Status == BookingStatus.Active)
+                .OrderByDescending(b => b.CheckOut <= today)
+                .ThenByDescending(b => b.CheckOut)
+                .FirstOrDefaultAsync(b =>
+                    b.GuestEmail.ToLower() == guestEmail.ToLower());
         }
 
         public async Task<Booking?> GetByIdAsync(int id)

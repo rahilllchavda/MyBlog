@@ -26,6 +26,12 @@ namespace CampSite.API.Services
             if (booking == null)
                 throw new KeyNotFoundException("Booking not found.");
 
+            EnsureBookingOwner(booking, dto.GuestEmail);
+
+            if (booking.Status == BookingStatus.Cancelled)
+                throw new InvalidOperationException(
+                    "Cannot rate a cancelled booking.");
+
             if (booking.CheckOut > DateTime.Today)
                 throw new InvalidOperationException(
                     "Rating can only be added after your stay is complete.");
@@ -65,6 +71,12 @@ namespace CampSite.API.Services
             if (booking == null)
                 throw new KeyNotFoundException("Booking not found.");
 
+            EnsureBookingOwner(booking, dto.GuestEmail);
+
+            if (booking.Status == BookingStatus.Cancelled)
+                throw new InvalidOperationException(
+                    "Cannot update rating for a cancelled booking.");
+
             if (booking.Rating == null)
                 throw new KeyNotFoundException(
                     "No rating found. Please add a rating first.");
@@ -97,6 +109,21 @@ namespace CampSite.API.Services
                 CreatedAt = rating.CreatedAt,
                 UpdatedAt = rating.UpdatedAt
             };
+        }
+
+        private static void EnsureBookingOwner(Booking booking, string guestEmail)
+        {
+            if (string.IsNullOrWhiteSpace(guestEmail))
+                throw new UnauthorizedAccessException("Guest email is required.");
+
+            if (!string.Equals(
+                    booking.GuestEmail.Trim(),
+                    guestEmail.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException(
+                    "Guest email does not match this booking.");
+            }
         }
     }
 }

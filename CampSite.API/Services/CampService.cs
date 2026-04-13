@@ -16,6 +16,10 @@ namespace CampSite.API.Services
         public async Task<PagedCampResponseDto> GetAvailableCampsAsync(
             CampSearchDto searchDto)
         {
+            if (searchDto.CheckIn >= searchDto.CheckOut)
+                throw new InvalidOperationException(
+                    "Check-out must be after check-in.");
+
             var camps      = await _campRepository.GetAvailableCampsAsync(
                                  searchDto.CheckIn,
                                  searchDto.CheckOut,

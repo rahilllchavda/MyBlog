@@ -61,7 +61,7 @@ namespace CampSite.API.Services
 
             var booking = new Booking
             {
-                ReferenceNumber = GenerateReferenceNumber(),
+                ReferenceNumber = await GenerateUniqueReferenceNumberAsync(),
                 CampId          = dto.CampId,
                 GuestFirstName  = dto.GuestFirstName,
                 GuestLastName   = dto.GuestLastName,
@@ -88,21 +88,47 @@ namespace CampSite.API.Services
         }
 
         public async Task<BookingResponseDto?> GetByReferenceNumberAsync(
-            string referenceNumber)
+            string referenceNumber,
+            string? guestEmail = null)
         {
             var booking = await _bookingRepository
                 .GetByReferenceNumberAsync(referenceNumber);
-            return booking == null ? null : MapToResponseDto(booking);
+
+            if (booking == null)
+                return null;
+
+            if (!string.IsNullOrWhiteSpace(guestEmail))
+                EnsureBookingOwner(booking, guestEmail);
+
+            return MapToResponseDto(booking);
+        }
+
+        // ✅ Get booking by email only (returns first active booking)
+        public async Task<BookingResponseDto?> GetByGuestEmailAsync(string guestEmail)
+        {
+            if (string.IsNullOrWhiteSpace(guestEmail))
+                throw new ArgumentException("Guest email is required.", nameof(guestEmail));
+
+            var booking = await _bookingRepository
+                .GetByEmailAsync(guestEmail.ToLower().Trim());
+
+            if (booking == null)
+                return null;
+
+            return MapToResponseDto(booking);
         }
 
         public async Task<BookingResponseDto> CancelBookingAsync(
-            string referenceNumber)
+            string referenceNumber,
+            string guestEmail)
         {
             var booking = await _bookingRepository
                 .GetByReferenceNumberAsync(referenceNumber);
 
             if (booking == null)
                 throw new KeyNotFoundException("Booking not found.");
+
+            EnsureBookingOwner(booking, guestEmail);
 
             if (booking.Status == BookingStatus.Cancelled)
                 throw new InvalidOperationException(
@@ -151,6 +177,19 @@ namespace CampSite.API.Services
         }
 
         // ── Helpers ───────────────────────────────────────────
+        private async Task<string> GenerateUniqueReferenceNumberAsync()
+        {
+            for (var attempt = 0; attempt < 10; attempt++)
+            {
+                var candidate = GenerateReferenceNumber();
+                if (!await _bookingRepository.ExistsAsync(candidate))
+                    return candidate;
+            }
+
+            throw new InvalidOperationException(
+                "Unable to generate a unique booking reference. Please try again.");
+        }
+
         private static string GenerateReferenceNumber()
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -159,6 +198,21 @@ namespace CampSite.API.Services
                 Enumerable.Repeat(chars, 8)
                           .Select(s => s[random.Next(s.Length)])
                           .ToArray());
+        }
+
+        private static void EnsureBookingOwner(Booking booking, string guestEmail)
+        {
+            if (string.IsNullOrWhiteSpace(guestEmail))
+                throw new UnauthorizedAccessException("Guest email is required.");
+
+            if (!string.Equals(
+                    booking.GuestEmail.Trim(),
+                    guestEmail.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException(
+                    "Guest email does not match this booking.");
+            }
         }
 
         private static BookingResponseDto MapToResponseDto(Booking booking)

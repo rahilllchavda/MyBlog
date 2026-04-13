@@ -5,7 +5,18 @@ import {
   addRating,
   updateRating,
 } from "../services/api";
-import { Search, Star, XCircle, MapPin, Moon } from "lucide-react";
+import { useApp } from "../context/useApp";
+import {
+  Search,
+  Star,
+  XCircle,
+  MapPin,
+  Moon,
+  Mail,
+  Ticket,
+  CheckCircle2,
+  Clock3,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 function StarPicker({ value, onChange }) {
@@ -29,7 +40,8 @@ function StarPicker({ value, onChange }) {
 }
 
 export default function ManageBooking() {
-  const [ref, setRef] = useState("");
+  const { triggerRatingsRefresh } = useApp();
+  const [query, setQuery] = useState("");
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -58,24 +70,33 @@ export default function ManageBooking() {
     checkOut.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return checkOut < today;
+    return checkOut <= today;
   };
   const hasRating = (b) => b.ratingStars != null;
+  const isEmailQuery = /\S+@\S+\.\S+/.test(query.trim());
 
   const handleSearch = async () => {
-    if (!ref.trim()) {
-      toast.error("Enter a reference number.");
+    const value = query.trim();
+
+    if (!value) {
+      toast.error("Enter a booking reference number or guest email.");
       return;
     }
+
     setLoading(true);
     setSearched(true);
     try {
-      const res = await getBooking(ref.trim().toUpperCase());
+      const res = await getBooking(value);
       setBooking(res.data);
       setStars(res.data.ratingStars ?? 0);
+      setComment("");
     } catch {
       setBooking(null);
-      toast.error("Booking not found. Check your reference number.");
+      toast.error(
+        isEmailQuery
+          ? "No completed or active bookings found for this email."
+          : "Booking not found. Check your reference number.",
+      );
     } finally {
       setLoading(false);
     }
@@ -85,7 +106,8 @@ export default function ManageBooking() {
     if (!window.confirm("Are you sure you want to cancel this booking?"))
       return;
     try {
-      await cancelBooking(booking.referenceNumber);
+      const ownerEmail = booking?.guestEmail?.trim().toLowerCase();
+      await cancelBooking(booking.referenceNumber, ownerEmail);
       setBooking((b) => ({ ...b, status: "Cancelled" }));
       toast.success("Booking cancelled. The camp is now available again.");
     } catch (err) {
@@ -100,8 +122,10 @@ export default function ManageBooking() {
     }
     setRatingSubmitting(true);
     try {
+      const ownerEmail = booking?.guestEmail?.trim().toLowerCase();
       const payload = {
         referenceNumber: booking.referenceNumber,
+        guestEmail: ownerEmail,
         campId: booking.campId,
         stars,
         comment,
@@ -114,6 +138,7 @@ export default function ManageBooking() {
         toast.success("Thanks for your review!");
       }
       setBooking((b) => ({ ...b, ratingStars: stars }));
+      triggerRatingsRefresh();
     } catch (err) {
       toast.error(err.response?.data?.message ?? "Failed to submit rating.");
     } finally {
@@ -126,29 +151,59 @@ export default function ManageBooking() {
       <div className="manage-inner">
         <h1 className="page-title">Manage Your Booking</h1>
         <p className="page-sub">
-          Enter your booking reference number to view, cancel, or rate your
-          stay.
+          Search using either your booking reference number or guest email to
+          view, cancel, or rate your stay.
         </p>
 
         {/* Search */}
         <div className="manage-search-card">
+          <div className="manage-search-header">
+            <div>
+              <h3>Find your reservation</h3>
+              <p>
+                Use <strong>AB12CD34</strong> style reference or your guest
+                email address.
+              </p>
+            </div>
+            <div className="manage-search-mode">
+              {isEmailQuery ? (
+                <>
+                  <Mail size={14} /> Email lookup
+                </>
+              ) : (
+                <>
+                  <Ticket size={14} /> Reference lookup
+                </>
+              )}
+            </div>
+          </div>
           <div className="manage-search-row">
             <input
-              value={ref}
-              onChange={(e) => setRef(e.target.value.toUpperCase())}
-              placeholder="Enter reference number e.g. AB12CD34"
-              maxLength={8}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Enter booking reference or guest email"
               className="manage-input"
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
+
             <button
               className="btn btn-primary"
               onClick={handleSearch}
               disabled={loading}
             >
               <Search size={16} />
-              {loading ? "Searching..." : "Find Booking"}
+              {loading ? "Searching..." : "Search"}
             </button>
+          </div>
+          <div className="manage-search-helper">
+            <span>
+              <Ticket size={13} /> Search one booking directly by reference
+              number.
+            </span>
+            <span>
+              <Mail size={13} /> Search your latest relevant booking by email.
+            </span>
           </div>
         </div>
 
@@ -157,7 +212,10 @@ export default function ManageBooking() {
           <div className="empty-state">
             <Search size={48} strokeWidth={1} />
             <h3>Booking not found</h3>
-            <p>Double-check your 8-character reference number.</p>
+            <p>
+              Double-check the booking reference number or email address you
+              entered.
+            </p>
           </div>
         )}
 
@@ -243,6 +301,10 @@ export default function ManageBooking() {
                 <p className="cancel-note" style={{ color: "var(--red)" }}>
                   ❌ Cannot cancel — check-in date has already passed.
                 </p>
+                <p className="cancel-note">
+                  <Clock3 size={14} /> Rating becomes available once your stay
+                  is completed.
+                </p>
               </div>
             )}
 
@@ -263,6 +325,12 @@ export default function ManageBooking() {
                     ? "✏️ Update Your Rating"
                     : "⭐ Rate Your Stay"}
                 </h3>
+                <div className="rating-note">
+                  <CheckCircle2 size={14} />
+                  {hasRating(booking)
+                    ? "You can update your previous rating anytime."
+                    : "Your stay is complete — you can now rate this camp out of 5 stars."}
+                </div>
                 <StarPicker value={stars} onChange={setStars} />
                 <textarea
                   className="rating-comment"

@@ -37,7 +37,7 @@ namespace CampSite.API.Services
 
             var token = await GenerateJwtTokenAsync(user);
 
-            return BuildAuthResponse(user, token);
+            return await BuildAuthResponse(user, token);
         }
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto dto)
@@ -79,13 +79,21 @@ namespace CampSite.API.Services
 
             var token = await GenerateJwtTokenAsync(user);
 
-            return BuildAuthResponse(user, token);
+            return await BuildAuthResponse(user, token);
         }
 
         // ✅ Centralized response builder
-        private AuthResponseDto BuildAuthResponse(ApplicationUser user, string token)
+        private async Task<AuthResponseDto> BuildAuthResponse(ApplicationUser user, string token)
         {
             var expiryDays = int.Parse(_configuration["JwtSettings:ExpiryInDays"] ?? "7");
+            
+            // ✅ Verify admin status: IsAdmin flag MUST match Admin role
+            var userRoles = await _userManager.GetRolesAsync(user);
+            bool hasAdminRole = userRoles.Contains("Admin");
+            
+            // Security: Ensure consistency between IsAdmin flag and actual Admin role
+            // Only users with Admin role should have IsAdmin = true
+            bool isAdminValid = user.IsAdmin && hasAdminRole;
 
             return new AuthResponseDto
             {
@@ -95,7 +103,7 @@ namespace CampSite.API.Services
                 Email = user.Email ?? string.Empty,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                IsAdmin = user.IsAdmin,
+                IsAdmin = isAdminValid, // ✅ Derived from actual role, not just flag
                 ExpiresAt = DateTime.UtcNow.AddDays(expiryDays)
             };
         }

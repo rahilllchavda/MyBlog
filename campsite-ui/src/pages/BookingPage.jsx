@@ -1,16 +1,37 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useApp } from "../context/useApp";
 import { createBooking, validateCoupon } from "../services/api";
-import { MapPin, Moon, Tag, CheckCircle } from "lucide-react";
+import {
+  MapPin,
+  Moon,
+  Tag,
+  CheckCircle,
+  ArrowLeft,
+  CalendarDays,
+  ShieldCheck,
+  CreditCard,
+  BadgeCheck,
+  LoaderCircle,
+  UserRound,
+  Mail,
+  Phone,
+  Home,
+  Receipt,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
-function Field({ label, error, children }) {
+function Field({ label, error, hint, icon, optional = false, children }) {
   return (
     <div className={`form-field ${error ? "has-error" : ""}`}>
-      <label>{label}</label>
+      <label>
+        {icon}
+        {label}
+        {optional && <span className="field-optional">Optional</span>}
+      </label>
       {children}
       {error && <span className="field-error">{error}</span>}
+      {!error && hint && <span className="field-hint">{hint}</span>}
     </div>
   );
 }
@@ -18,6 +39,12 @@ function Field({ label, error, children }) {
 export default function BookingPage() {
   const navigate = useNavigate();
   const { selectedCamp, setConfirmedBooking } = useApp();
+  const checkIn = selectedCamp?.checkIn ?? "";
+  const checkOut = selectedCamp?.checkOut ?? "";
+  const pricePerNight = selectedCamp?.pricePerNight ?? 0;
+  const name = selectedCamp?.name ?? "";
+  const location = selectedCamp?.location ?? "";
+  const imageUrl = selectedCamp?.imageUrl ?? "";
 
   const [form, setForm] = useState({
     guestFirstName: "",
@@ -35,21 +62,42 @@ export default function BookingPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const nights = useMemo(
+    () =>
+      Math.max(
+        1,
+        Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000),
+      ),
+    [checkIn, checkOut],
+  );
+  const subTotal = useMemo(
+    () => selectedCamp?.totalPrice ?? pricePerNight * nights,
+    [selectedCamp?.totalPrice, pricePerNight, nights],
+  );
+  const discount = coupon?.discountValue ?? 0;
+  const total = Math.max(0, subTotal - discount);
+  const hasDynamicPricing =
+    selectedCamp?.totalPrice &&
+    selectedCamp.totalPrice !== pricePerNight * nights;
+
+  useEffect(() => {
+    if (!coupon) return;
+    if (coupon.code !== form.couponCode.trim().toUpperCase()) {
+      setCoupon(null);
+    }
+  }, [form.couponCode, coupon]);
+
   if (!selectedCamp) {
     return <Navigate to="/" replace />;
   }
 
-  const { checkIn, checkOut, pricePerNight, name, location, imageUrl } =
-    selectedCamp;
-  const nights = Math.round(
-    (new Date(checkOut) - new Date(checkIn)) / 86400000,
-  );
-  // Use pre-calculated dynamic total from API (accounts for weekend pricing)
-  const subTotal = selectedCamp.totalPrice ?? pricePerNight * nights;
-  const discount = coupon?.discountValue ?? 0;
-  const total = subTotal - discount;
-
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k) => (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, [k]: value }));
+    if (errors[k]) {
+      setErrors((prev) => ({ ...prev, [k]: undefined }));
+    }
+  };
 
   const validate = () => {
     const e = {};
@@ -92,11 +140,23 @@ export default function BookingPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    const e = validate();
-    setErrors(e);
-    if (Object.keys(e).length > 0) {
+  const focusFirstError = () => {
+    setTimeout(() => {
+      document
+        .querySelector(
+          ".form-field.has-error input, .form-field.has-error select, .form-field.has-error textarea",
+        )
+        ?.focus();
+    }, 0);
+  };
+
+  const handleSubmit = async (event) => {
+    event?.preventDefault();
+    const validationErrors = validate();
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
       toast.error("Please fix the errors before submitting.");
+      focusFirstError();
       return;
     }
     setSubmitting(true);
@@ -135,42 +195,95 @@ export default function BookingPage() {
         {/* LEFT — Form */}
         <div className="booking-form-section">
           <button className="back-btn" onClick={() => navigate(-1)}>
-            ← Back
+            <ArrowLeft size={15} /> Back
           </button>
-          <h1 className="page-title">Complete Your Booking</h1>
+          <div className="booking-page-header">
+            <div>
+              <h1 className="page-title">Complete Your Booking</h1>
+              <p className="page-sub booking-subtitle">
+                Secure your stay in under a minute with instant confirmation.
+              </p>
+            </div>
+            <div className="booking-top-badge">
+              <ShieldCheck size={15} /> Secure reservation
+            </div>
+          </div>
 
-          <div className="form-card">
+          <div className="booking-trip-card">
+            <div className="booking-trip-item">
+              <CalendarDays size={16} />
+              <div>
+                <span>Selected stay</span>
+                <strong>
+                  {fmtDate(checkIn)} → {fmtDate(checkOut)}
+                </strong>
+              </div>
+            </div>
+            <div className="booking-trip-item">
+              <Moon size={16} />
+              <div>
+                <span>Duration</span>
+                <strong>
+                  {nights} night{nights > 1 ? "s" : ""}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <form className="form-card booking-form-card" onSubmit={handleSubmit}>
             <h3 className="form-section-title">Guest Details</h3>
             <div className="form-row">
-              <Field label="First Name" error={errors.guestFirstName}>
+              <Field
+                label="First Name"
+                error={errors.guestFirstName}
+                icon={<UserRound size={14} />}
+              >
                 <input
                   value={form.guestFirstName}
                   onChange={set("guestFirstName")}
                   placeholder="John"
+                  autoComplete="given-name"
                 />
               </Field>
-              <Field label="Last Name" error={errors.guestLastName}>
+              <Field
+                label="Last Name"
+                error={errors.guestLastName}
+                icon={<UserRound size={14} />}
+              >
                 <input
                   value={form.guestLastName}
                   onChange={set("guestLastName")}
                   placeholder="Doe"
+                  autoComplete="family-name"
                 />
               </Field>
             </div>
             <div className="form-row">
-              <Field label="Email Address" error={errors.guestEmail}>
+              <Field
+                label="Email Address"
+                error={errors.guestEmail}
+                icon={<Mail size={14} />}
+                hint="We'll send your booking confirmation here."
+              >
                 <input
                   type="email"
                   value={form.guestEmail}
                   onChange={set("guestEmail")}
                   placeholder="john@example.com"
+                  autoComplete="email"
                 />
               </Field>
-              <Field label="Cell Phone" error={errors.guestPhone}>
+              <Field
+                label="Cell Phone"
+                error={errors.guestPhone}
+                icon={<Phone size={14} />}
+                hint="Used only for check-in coordination."
+              >
                 <input
                   value={form.guestPhone}
                   onChange={set("guestPhone")}
                   placeholder="+1 234 567 8900"
+                  autoComplete="tel"
                 />
               </Field>
             </div>
@@ -178,30 +291,45 @@ export default function BookingPage() {
             <h3 className="form-section-title" style={{ marginTop: "1.5rem" }}>
               Billing Address
             </h3>
-            <Field label="Street Address" error={errors.billingAddress}>
+            <Field
+              label="Street Address"
+              error={errors.billingAddress}
+              icon={<Home size={14} />}
+            >
               <input
                 value={form.billingAddress}
                 onChange={set("billingAddress")}
                 placeholder="123 Main Street"
+                autoComplete="street-address"
               />
             </Field>
             <div className="form-row">
-              <Field label="City" error={errors.city}>
+              <Field label="City" error={errors.city} icon={<Home size={14} />}>
                 <input
                   value={form.city}
                   onChange={set("city")}
                   placeholder="New York"
+                  autoComplete="address-level2"
                 />
               </Field>
-              <Field label="ZIP Code" error={errors.zipCode}>
+              <Field
+                label="ZIP Code"
+                error={errors.zipCode}
+                icon={<Home size={14} />}
+              >
                 <input
                   value={form.zipCode}
                   onChange={set("zipCode")}
                   placeholder="10001"
+                  autoComplete="postal-code"
                 />
               </Field>
             </div>
-            <Field label="Country" error={errors.country}>
+            <Field
+              label="Country"
+              error={errors.country}
+              icon={<Home size={14} />}
+            >
               <select value={form.country} onChange={set("country")}>
                 <option value="">Select country</option>
                 {[
@@ -232,13 +360,21 @@ export default function BookingPage() {
                   onChange={set("couponCode")}
                   placeholder="Enter code (e.g. CAMP10)"
                   className="coupon-input"
+                  autoComplete="off"
                 />
                 <button
+                  type="button"
                   className="btn btn-outline"
                   onClick={handleCoupon}
-                  disabled={couponLoading}
+                  disabled={couponLoading || !form.couponCode.trim()}
                 >
-                  {couponLoading ? "Checking..." : "Apply"}
+                  {couponLoading ? (
+                    <>
+                      <LoaderCircle size={16} className="spinner" /> Checking...
+                    </>
+                  ) : (
+                    "Apply"
+                  )}
                 </button>
               </div>
               {coupon && (
@@ -249,6 +385,30 @@ export default function BookingPage() {
               )}
               <p className="coupon-hint">Try: CAMP10 · CAMP25 · SUMMER50</p>
             </div>
+          </form>
+
+          <div className="booking-assurance-grid">
+            <div className="booking-assurance-item">
+              <ShieldCheck size={16} />
+              <div>
+                <strong>Secure reservation</strong>
+                <span>Your details stay protected.</span>
+              </div>
+            </div>
+            <div className="booking-assurance-item">
+              <BadgeCheck size={16} />
+              <div>
+                <strong>Instant confirmation</strong>
+                <span>Reference number generated immediately.</span>
+              </div>
+            </div>
+            <div className="booking-assurance-item">
+              <CreditCard size={16} />
+              <div>
+                <strong>Pay at check-in</strong>
+                <span>No online payment friction.</span>
+              </div>
+            </div>
           </div>
 
           <button
@@ -256,9 +416,14 @@ export default function BookingPage() {
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting
-              ? "Processing..."
-              : `Confirm Booking · $${total.toFixed(2)}`}
+            {submitting ? (
+              <>
+                <LoaderCircle size={18} className="spinner" /> Processing your
+                booking...
+              </>
+            ) : (
+              `Confirm Booking · $${total.toFixed(2)}`
+            )}
           </button>
           <p className="payment-note">
             💳 Payment collected at check-in. Free cancellation for future
@@ -279,6 +444,16 @@ export default function BookingPage() {
               }}
             />
             <div className="summary-body">
+              <div className="summary-pill-row">
+                <span className="summary-pill">
+                  <Receipt size={12} /> Reservation summary
+                </span>
+                {hasDynamicPricing && (
+                  <span className="summary-pill summary-pill-accent">
+                    Dynamic pricing applied
+                  </span>
+                )}
+              </div>
               <h3 className="summary-camp-name">{name}</h3>
               <div className="summary-location">
                 <MapPin size={13} /> {location}
@@ -304,13 +479,12 @@ export default function BookingPage() {
               <div className="summary-row">
                 <span>
                   ${pricePerNight} × {nights} nights
-                  {selectedCamp.totalPrice &&
-                    selectedCamp.totalPrice !== pricePerNight * nights && (
-                      <span className="dynamic-pricing-note">
-                        {" "}
-                        (incl. weekend rates)
-                      </span>
-                    )}
+                  {hasDynamicPricing && (
+                    <span className="dynamic-pricing-note">
+                      {" "}
+                      (incl. weekend rates)
+                    </span>
+                  )}
                 </span>
                 <span>${subTotal.toFixed(2)}</span>
               </div>

@@ -16,7 +16,8 @@ namespace CampSite.API.Validators
                 .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.");
 
             RuleFor(x => x.Location)
-                .NotEmpty().WithMessage("Location is required.");
+                .NotEmpty().WithMessage("Location is required.")
+                .MaximumLength(120).WithMessage("Location cannot exceed 120 characters.");
 
             RuleFor(x => x.ImageUrl)
                 .NotEmpty().WithMessage("Image URL is required.")
@@ -31,8 +32,8 @@ namespace CampSite.API.Validators
                 .GreaterThan(0).WithMessage("Price per night must be greater than 0.");
 
             RuleFor(x => x.WeekendPricePerNight)
-                .GreaterThan(0).WithMessage("Weekend price must be greater than 0.")
-                .When(x => x.WeekendPricePerNight.HasValue);
+                .NotNull().WithMessage("Weekend price is required.")
+                .GreaterThan(0).WithMessage("Weekend price must be greater than 0.");
         }
     }
 
@@ -49,7 +50,8 @@ namespace CampSite.API.Validators
                 .MaximumLength(500).WithMessage("Description cannot exceed 500 characters.");
 
             RuleFor(x => x.Location)
-                .NotEmpty().WithMessage("Location is required.");
+                .NotEmpty().WithMessage("Location is required.")
+                .MaximumLength(120).WithMessage("Location cannot exceed 120 characters.");
 
             RuleFor(x => x.ImageUrl)
                 .NotEmpty().WithMessage("Image URL is required.")
@@ -62,6 +64,10 @@ namespace CampSite.API.Validators
 
             RuleFor(x => x.PricePerNight)
                 .GreaterThan(0).WithMessage("Price per night must be greater than 0.");
+
+            RuleFor(x => x.WeekendPricePerNight)
+                .NotNull().WithMessage("Weekend price is required.")
+                .GreaterThan(0).WithMessage("Weekend price must be greater than 0.");
         }
     }
 }

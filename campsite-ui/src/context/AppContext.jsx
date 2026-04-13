@@ -3,14 +3,21 @@ import toast from "react-hot-toast";
 
 const AppContext = createContext();
 
+function toLocalDateStr(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function getInitialSearch() {
   const checkInDate = new Date();
   const checkOutDate = new Date(checkInDate);
   checkOutDate.setDate(checkOutDate.getDate() + 1);
 
   return {
-    checkIn: checkInDate.toISOString().split("T")[0],
-    checkOut: checkOutDate.toISOString().split("T")[0],
+    checkIn: toLocalDateStr(checkInDate),
+    checkOut: toLocalDateStr(checkOutDate),
     capacity: "",
     page: 1,
     pageSize: 6,
@@ -27,6 +34,11 @@ export function AppProvider({ children }) {
 
   const [selectedCamp, setSelectedCamp] = useState(null);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
+  const [ratingsRefreshTick, setRatingsRefreshTick] = useState(0);
+
+  const triggerRatingsRefresh = () => {
+    setRatingsRefreshTick((tick) => tick + 1);
+  };
 
   const loginUser = (userData, token) => {
     localStorage.setItem("campsite_token", token);
@@ -53,6 +65,8 @@ export function AppProvider({ children }) {
         setSelectedCamp,
         confirmedBooking,
         setConfirmedBooking,
+        ratingsRefreshTick,
+        triggerRatingsRefresh,
       }}
     >
       {children}

@@ -74,7 +74,7 @@ Open **http://localhost:5173** in your browser.
 The `.env` file is pre-configured:
 
 ```
-VITE_API_BASE_URL=https://localhost:7218/api
+VITE_API_BASE_URL=https://campsite-api-aph2bsd4f4h8hjd4.canadacentral-01.azurewebsites.net
 ```
 
 ---

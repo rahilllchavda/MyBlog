@@ -26,7 +26,7 @@ namespace CampSite.API.Controllers
 
             var result = await _authService.LoginAsync(dto);
 
-            if (result == null)
+            if (!result.Success)
                 return Unauthorized(new { message = "Invalid email or password" });
 
             return Ok(result);

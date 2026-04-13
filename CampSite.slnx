@@ -1,2 +1,4 @@
 <Solution>
+  <Project Path="CampSite.API/CampSite.API.csproj" />
+  <Project Path="CampSite.Tests/CampSite.Tests.csproj" />
 </Solution>

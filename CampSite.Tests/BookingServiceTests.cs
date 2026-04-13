@@ -156,7 +156,9 @@ namespace CampSite.Tests
 
             // Act
             var act = async () =>
-                await _bookingService.CancelBookingAsync("INVALID1");
+                await _bookingService.CancelBookingAsync(
+                    "INVALID1",
+                    "guest@example.com");
 
             // Assert
             await act.Should().ThrowAsync<KeyNotFoundException>()
@@ -172,6 +174,7 @@ namespace CampSite.Tests
                 Id              = 1,
                 ReferenceNumber = "ABCD1234",
                 CampId          = 1,
+                GuestEmail      = "guest@example.com",
                 CheckIn         = DateTime.Today.AddDays(-1), // Already started
                 CheckOut        = DateTime.Today.AddDays(2),
                 Status          = BookingStatus.Active,
@@ -189,7 +192,9 @@ namespace CampSite.Tests
 
             // Act
             var act = async () =>
-                await _bookingService.CancelBookingAsync("ABCD1234");
+                await _bookingService.CancelBookingAsync(
+                    "ABCD1234",
+                    "guest@example.com");
 
             // Assert
             await act.Should().ThrowAsync<InvalidOperationException>()

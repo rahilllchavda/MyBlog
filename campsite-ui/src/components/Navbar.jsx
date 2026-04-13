@@ -15,6 +15,8 @@ import { useState, useRef, useEffect } from "react";
 export default function Navbar() {
   const { logoutUser } = useApp();
   const { isAuthenticated, isAdmin, user } = useAuth();
+  const isAdminSession = isAuthenticated && isAdmin;
+  const showBookingLinks = !isAdminSession;
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,7 +32,7 @@ export default function Navbar() {
     logoutUser();
     setUserDropdownOpen(false);
     setIsLoggingOut(false);
-    navigate("/");
+    navigate("/login");
   };
 
   // Close dropdown when clicking outside
@@ -69,35 +71,43 @@ export default function Navbar() {
   }, []);
 
   // Helper to check if link is active
-  const isActive = (path) => location.pathname === path;
-
+  const isActive = (path) => location.pathname.startsWith(path);
   const closeMobileMenu = () => setMobileMenuOpen(false);
+  const brandTarget = isAdminSession ? "/admin" : "/";
+  const displayName = user?.firstName?.trim() || "User";
 
   return (
     <nav
+      role="navigation"
       className={`navbar ${hasScrolled ? "navbar-scrolled" : ""}`}
       ref={navbarRef}
     >
       <div className="navbar-inner">
-        <Link to="/" className="navbar-brand">
+        <Link
+          to={brandTarget}
+          className="navbar-brand"
+          onClick={closeMobileMenu}
+        >
           <Tent size={28} strokeWidth={1.5} />
           <span>CampSite</span>
         </Link>
 
         {/* Desktop */}
         <div className="navbar-links desktop-only">
-          <Link
-            to="/manage"
-            className={`nav-link ${isActive("/manage") ? "nav-link-active" : ""}`}
-          >
-            <BookOpen size={16} /> My Booking
-          </Link>
-          {isAdmin && (
+          {showBookingLinks && (
+            <Link
+              to="/manage"
+              className={`nav-link ${isActive("/manage") ? "nav-link-active" : ""}`}
+            >
+              <BookOpen size={16} /> My Booking
+            </Link>
+          )}
+          {isAdminSession && (
             <Link
               to="/admin"
-              className={`nav-link ${isActive("/admin") ? "nav-link-active" : ""}`}
+              className={`nav-link nav-admin-link ${isActive("/admin") ? "nav-link-active" : ""}`}
             >
-              <Settings size={16} /> Manage Camps
+              <Settings size={16} /> Manage Camp
             </Link>
           )}
           {!isAuthenticated ? (
@@ -112,10 +122,10 @@ export default function Navbar() {
                 aria-expanded={userDropdownOpen}
               >
                 <span className="nav-user-avatar">
-                  {user?.firstName?.charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase()}
                 </span>
                 <span className="nav-user-name">
-                  {user?.firstName} {isAdmin ? "👑" : ""}
+                  {isAdminSession ? `Admin` : displayName}
                 </span>
                 <ChevronDown
                   size={16}
@@ -126,7 +136,21 @@ export default function Navbar() {
               </button>
               {userDropdownOpen && (
                 <div className="nav-dropdown nav-dropdown-enter">
-                  <div className="nav-dropdown-header">{user?.email}</div>
+                  <div className="nav-dropdown-header">
+                    {user?.email}
+                    {isAdminSession && (
+                      <span className="admin-pill">Admin</span>
+                    )}
+                  </div>
+                  {isAdminSession && !isActive("/admin") && (
+                    <Link
+                      to="/admin"
+                      className="nav-dropdown-item"
+                      onClick={() => setUserDropdownOpen(false)}
+                    >
+                      <Settings size={15} /> Go to Admin Panel
+                    </Link>
+                  )}
                   <button
                     className="nav-dropdown-item"
                     onClick={handleLogout}
@@ -159,14 +183,16 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="mobile-menu mobile-menu-enter">
-          <Link
-            to="/manage"
-            onClick={closeMobileMenu}
-            className={isActive("/manage") ? "mobile-menu-item-active" : ""}
-          >
-            <BookOpen size={16} /> My Booking
-          </Link>
-          {isAdmin && (
+          {showBookingLinks && (
+            <Link
+              to="/manage"
+              onClick={closeMobileMenu}
+              className={isActive("/manage") ? "mobile-menu-item-active" : ""}
+            >
+              <BookOpen size={16} /> My Booking
+            </Link>
+          )}
+          {isAdminSession && (
             <Link
               to="/admin"
               onClick={closeMobileMenu}

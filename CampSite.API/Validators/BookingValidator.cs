@@ -64,4 +64,25 @@ namespace CampSite.API.Validators
                 .MinimumLength(6).WithMessage("Min 6 characters.");
         }
     }
+
+    public class BookingAccessValidator : AbstractValidator<BookingAccessDto>
+    {
+        public BookingAccessValidator()
+        {
+            RuleFor(x => x.GuestEmail)
+                .NotEmpty().WithMessage("Guest email is required.")
+                .EmailAddress().WithMessage("Valid guest email is required.");
+        }
+    }
+
+    public class CancelBookingRequestValidator
+        : AbstractValidator<CancelBookingRequestDto>
+    {
+        public CancelBookingRequestValidator()
+        {
+            RuleFor(x => x.GuestEmail)
+                .NotEmpty().WithMessage("Guest email is required.")
+                .EmailAddress().WithMessage("Valid guest email is required.");
+        }
+    }
 }
