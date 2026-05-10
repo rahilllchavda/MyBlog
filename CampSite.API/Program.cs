@@ -149,8 +149,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ── Middleware Pipeline ───────────────────────────────────
-app.UseMiddleware<ExceptionMiddleware>();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -159,6 +157,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowReact");
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

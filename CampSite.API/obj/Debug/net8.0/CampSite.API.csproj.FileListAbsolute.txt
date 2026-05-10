@@ -6,14 +6,8 @@ c:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\.tmp_api_build
 c:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\.tmp_api_build\CampSite.API.runtimeconfig.json
 c:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\.tmp_api_build\CampSite.API.dll
 c:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\.tmp_api_build\CampSite.API.pdb
-C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\publish\web.config
 C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\appsettings.Development.json
 C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\appsettings.json
-C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\publish\appsettings.Development.json
-C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\publish\appsettings.json
-C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\publish\CampSite.API.deps.json
-C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\publish\CampSite.API.runtimeconfig.json
-C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\publish\CampSite.API.staticwebassets.endpoints.json
 C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\CampSite.API.staticwebassets.endpoints.json
 C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\CampSite.API.exe
 C:\Users\rahilchavda\OneDrive - Nagarro\Desktop\Module-6\CampSite\CampSite.API\bin\Debug\net8.0\CampSite.API.deps.json
